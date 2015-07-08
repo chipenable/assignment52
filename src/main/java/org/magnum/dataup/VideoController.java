@@ -50,18 +50,7 @@ public class VideoController{
 	private static AtomicLong currentId = new AtomicLong(1L);
     private VideoFileManager videoDataMgr;
     
-    
-    public VideoController(){
-    	
-    	System.out.println("start conrtoller");
-    	/*try {
-			videoDataMgr = VideoFileManager.get();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}*/	
-    }
-    
+   
     
 	
 	@RequestMapping(value="/video", method=RequestMethod.GET)
