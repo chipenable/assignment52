@@ -68,6 +68,10 @@ public class Video {
 	private String location;
 	private String subject;
 	private String contentType;
+	private float rating; 
+	
+	@JsonIgnore
+	private long ratingCount; 
 
 	@JsonIgnore
 	private String dataUrl;
@@ -140,6 +144,22 @@ public class Video {
 		return (obj instanceof Video)
 				&& Objects.equals(getTitle(), ((Video) obj).getTitle())
 				&& getDuration() == ((Video) obj).getDuration();
+	}
+
+	public float getRating() {
+		return rating;
+	}
+
+	public void setRating(float rating) {
+		this.rating = rating;
+	}
+	
+	public long getRatingCount(){
+		return ratingCount;
+	}
+	
+	public void setRatingCount(long ratingCount){
+		this.ratingCount = ratingCount; 
 	}
 
 }

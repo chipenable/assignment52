@@ -22,6 +22,7 @@ import java.io.OutputStream;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.servlet.http.HttpServletRequest;
@@ -30,6 +31,8 @@ import javax.servlet.http.HttpServletResponse;
 import org.magnum.dataup.model.Video;
 import org.magnum.dataup.model.VideoStatus;
 import org.magnum.dataup.model.VideoStatus.VideoState;
+import org.springframework.data.annotation.QueryAnnotation;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -43,15 +46,16 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.multipart.MultipartFile;
 
 
+
+
 @Controller
 public class VideoController{
 	
-	private Map<Long,Video> videos = new HashMap<Long, Video>();
-	private static AtomicLong currentId = new AtomicLong(1L);
+	
+	private static AtomicLong currentId = new AtomicLong(0L);
+	private Map<Long,Video> videos = new ConcurrentHashMap<Long, Video>();
     private VideoFileManager videoDataMgr;
-    
-   
-    
+          
 	
 	@RequestMapping(value="/video", method=RequestMethod.GET)
 	public @ResponseBody Collection<Video> getVideoList() {
@@ -61,14 +65,18 @@ public class VideoController{
 	@RequestMapping(value="/video", method=RequestMethod.POST)
 	public @ResponseBody Video addVideoMetaData(@RequestBody Video video) {
 		
-		//if (video.getId() == 0){
+		if (videos != null && videos.containsKey(video.getId())){
+			Video servVideo = videos.get(video.getId());
+			servVideo.setLocation(video.getLocation());
+		}
+		else{
 			long id = genId(); 
 			String url = getDataUrl(id);
-			
+			video.setRatingCount(0);
 			video.setId(id);
 			video.setDataUrl(url);
 			videos.put(id, video);
-		//}
+		}
 		
 	    return video; 
 	}
@@ -112,6 +120,29 @@ public class VideoController{
     		response.sendError(404);
     	}
 	}
+    
+	@RequestMapping(value="/video/{id}", method=RequestMethod.POST)
+	public @ResponseBody float setRating(
+			@PathVariable("id") long id,
+			@RequestParam("rating") float rating,
+			HttpServletResponse response) throws IOException{
+		
+		if (videos.containsKey(id)){
+    		Video video = videos.get(id);
+    		float curRating = video.getRating();
+    		long count = video.getRatingCount();  
+    		rating = (curRating*count + rating)/(count+1);
+    		video.setRating(rating);
+    		video.setRatingCount(count+1);
+    		response.setStatus(200);
+    			
+		}
+		else{
+			response.sendError(404);
+		}
+
+		return rating;    
+    }
 	
 	//************************************************
 	
@@ -127,8 +158,7 @@ public class VideoController{
 	private String getUrlBaseForLocalServer() {
         HttpServletRequest request = 
             ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
-        String base = 
-           "http://"+request.getServerName() 
+        String base = "http://"+request.getServerName() 
            + ((request.getServerPort() != 80) ? ":"+request.getServerPort() : "");
         return base;
      }
